@@ -1,0 +1,28 @@
+{
+    "name": "bigfig",
+    "version": "0.0.1",
+    "description": "configs which vary by many different dimensions",
+    "keywords": [
+        "config",
+        "dimensions",
+        "NODE_ENV"
+    ],
+    "author": "Drew Folta <drew@folta.net>",
+    "dependencies": {
+        "hoek": "^2.14.0"
+    },
+    "devDependencies": {
+        "istanbul": "^0.3.17",
+        "mocha": "^2.2.5"
+    },
+    "scripts": {
+        "test": "istanbul cover _mocha -- tests/index.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/drewfish/node-bigfig.git"
+    },
+    "homepage": "http://github.com/drewfish/node-bigfig/",
+    "bugs": "http://github.com/drewfish/node-bigfig/issues",
+    "license": "MIT"
+}
