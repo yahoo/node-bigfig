@@ -9,13 +9,13 @@ function isObject(obj) {
 }
 
 
-function matcher(configContext, runContext, options) {
-    var keys = Object.keys(configContext),
+function matcher(sectionContext, runContext, options) {
+    var keys = Object.keys(sectionContext),
         k, key;
     for (k = 0; k < keys.length; k++) {
         key = keys[k];
-        // FUTURE -- dimension value hierarchy
-        if (configContext[key] !== runContext[key]) {
+        // IDEA -- dimension value hierarchy
+        if (sectionContext[key] !== runContext[key]) {
             return false;
         }
     }
@@ -50,7 +50,7 @@ function objectClone(oldO) {
 }
 
 
-function objectMerge(from, to, options) {
+function objectMerge(to, from, options) {
     var key;
     for (key in from) {
         /* istanbul ignore else hasOwnProperty in loop */
@@ -58,7 +58,7 @@ function objectMerge(from, to, options) {
             if (to.hasOwnProperty(key)) {
                 if (from[key] && isObject(from[key])) {
                     // exists in destination -- merge
-                    to[key] = ME.objectMerge(from[key], to[key], options);
+                    to[key] = ME.objectMerge(to[key], from[key], options);
                 } else {
                     // exists in destination -- clobber
                     to[key] = from[key];
@@ -73,20 +73,22 @@ function objectMerge(from, to, options) {
 }
 
 
-// turns raw into a list [ [context,config], ... ]
-function sectionsFromRaw(raw, options) {
+// turns source into a list of {context, config} sections
+// preserved semantic order found in source
+function sectionsFromSource(source, options) {
     var sections = [],
         root = {};
 
-    Object.keys(raw).forEach(function(key) {
+    Object.keys(source).forEach(function(key) {
+        // IDEA -- custom special key prefix
         if ('__context?' === key.substr(0, 10)) {
             sections.push({
                 context: LIBS.qs.parse(key.substr(10)),
-                config: raw[key]
+                config: source[key]
             });
         }
         else {
-            root[key] = raw[key];
+            root[key] = source[key];
         }
     });
     sections.unshift({
@@ -94,21 +96,21 @@ function sectionsFromRaw(raw, options) {
         config: root
     });
 
-    // FUTURE -- refactor deeply hierarchical configs
+    // TODO -- refactor deeply hierarchical configs
     return sections;
 }
 
 
-function Config(raw, options) {
-    if (!isObject(raw) || Array.isArray(raw)) {
+function Config(source, options) {
+    if (!isObject(source) || Array.isArray(source)) {
         throw new Error('bigfig only supports object configs');
     }
     this.options = options || {};
-    this.sections = sectionsFromRaw(raw, this.options);
+    this.sections = sectionsFromSource(source, this.options);
 }
 Config.prototype = {
 
-    contextualize: function contextualize(context, options) {
+    read: function read(context, options) {
         var sections = this.match(context, options);
         return this.merge(sections, options);
     },
@@ -123,7 +125,7 @@ Config.prototype = {
                 configs.push(section.config);
             }
         }
-        // FUTURE optional feature -- sort configs based on some criteria of tightness of match
+        // IDEA -- sort configs based on some criteria of tightness of match
         return configs;
     },
 
@@ -132,7 +134,7 @@ Config.prototype = {
             s,
             len = sections.length;
         for (s = 0; s < len; s++) {
-            ME.objectMerge(ME.objectClone(sections[s]), config, options);
+            ME.objectMerge(config, ME.objectClone(sections[s]), options);
         }
         return config;
     },
@@ -140,15 +142,15 @@ Config.prototype = {
 };
 
 
+ME.Config = Config;
 ME.matcher = matcher;
 ME.objectClone = objectClone;
 ME.objectMerge = objectMerge;
-ME.Config = Config;
 
 // mainly for testing
 ME.TEST = {
     LIBS: LIBS,
-    sectionsFromRaw: sectionsFromRaw,
+    sectionsFromSource: sectionsFromSource,
 };
 
 

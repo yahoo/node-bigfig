@@ -138,7 +138,7 @@ describe('objectMerge()', function() {
                 c: 'c-bbb',
             },
             have;
-        have = testee.objectMerge(b, a, options);
+        have = testee.objectMerge(a, b, options);
         assert.deepEqual(have, want);
     });
 
@@ -172,7 +172,7 @@ describe('objectMerge()', function() {
                 },
             },
             have;
-        have = testee.objectMerge(b, a, options);
+        have = testee.objectMerge(a, b, options);
         assert.deepEqual(have, want);
     });
 
@@ -188,7 +188,7 @@ describe('objectMerge()', function() {
                 a: [ 'm', 'n', 'o' ],
             },
             have;
-        have = testee.objectMerge(b, a, options);
+        have = testee.objectMerge(a, b, options);
         assert.deepEqual(have, want);
     });
 
@@ -216,13 +216,13 @@ describe('objectMerge()', function() {
                 e: '',
             },
             have;
-        have = testee.objectMerge(b, a, options);
+        have = testee.objectMerge(a, b, options);
         assert.deepEqual(have, want);
     });
 });
 
 
-describe('sectionsFromRaw()', function() {
+describe('sectionsFromSource()', function() {
     var testee = loadTestee();
 
     it('works for an empty config', function() {
@@ -235,7 +235,7 @@ describe('sectionsFromRaw()', function() {
                 },
             ],
             have;
-        have = testee.TEST.sectionsFromRaw(raw, options);
+        have = testee.TEST.sectionsFromSource(raw, options);
         assert.deepEqual(have, want);
     });
 
@@ -253,7 +253,7 @@ describe('sectionsFromRaw()', function() {
                 },
             ],
             have;
-        have = testee.TEST.sectionsFromRaw(raw, options);
+        have = testee.TEST.sectionsFromSource(raw, options);
         assert.deepEqual(have, want);
     });
 
@@ -280,7 +280,7 @@ describe('sectionsFromRaw()', function() {
                 },
             ],
             have;
-        have = testee.TEST.sectionsFromRaw(raw, options);
+        have = testee.TEST.sectionsFromSource(raw, options);
         assert.deepEqual(have, want);
     });
 
@@ -325,7 +325,7 @@ describe('sectionsFromRaw()', function() {
                 },
             ],
             have;
-        have = testee.TEST.sectionsFromRaw(raw, options);
+        have = testee.TEST.sectionsFromSource(raw, options);
         assert.deepEqual(have, want);
     });
 });
@@ -367,7 +367,7 @@ describe('Config()', function() {
         });
     });
 
-    describe('contextualize()', function() {
+    describe('read()', function() {
         it('runs the algorithm', function() {
             var fig = new testee.Config({}),
                 matchCalled = false,
@@ -385,7 +385,7 @@ describe('Config()', function() {
                 assert.deepEqual(opts, {setting: 'on'});
                 return 'olives';
             };
-            have = fig.contextualize({env: 'dev'}, {setting: 'on'});
+            have = fig.read({env: 'dev'}, {setting: 'on'});
             assert.equal(have, 'olives');
         });
     });
@@ -423,7 +423,7 @@ describe('Config()', function() {
             var fig = new testee.Config({}),
                 mergerCalled = false,
                 have;
-            testee.objectMerge = function(b, a, opts) {
+            testee.objectMerge = function(a, b, opts) {
                 mergerCalled = true;
                 // shallow merge, just for testing
                 Object.keys(b).forEach(function(key) {

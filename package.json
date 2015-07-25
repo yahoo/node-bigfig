@@ -1,16 +1,16 @@
 {
     "name": "bigfig",
     "version": "0.0.1",
-    "description": "configs which vary by many different dimensions",
+    "description": "configs that vary based on multiple considerations",
     "keywords": [
         "config",
+        "configuration",
         "dimensions",
+        "context",
         "NODE_ENV"
     ],
     "author": "Drew Folta <drew@folta.net>",
-    "dependencies": {
-        "hoek": "^2.14.0"
-    },
+    "dependencies": {},
     "devDependencies": {
         "istanbul": "^0.3.17",
         "mocha": "^2.2.5"
