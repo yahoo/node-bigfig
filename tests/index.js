@@ -1,3 +1,5 @@
+/* jshint: node=true */
+/* global describe,it */
 
 
 var assert = require('assert');
@@ -59,7 +61,65 @@ describe('matcher()', function() {
 });
 
 
-describe('merger()', function() {
+describe('objectClone()', function() {
+    var testee = loadTestee();
+
+    it('clones scalars', function() {
+        var vals = [
+                'L',
+                12.33,
+                null,
+                '',
+                undefined,
+                Infinity,
+                -Infinity,
+            ];
+        vals.forEach(function(val) {
+            assert(testee.objectClone(val) === val);
+        });
+        assert(Number.isNaN(testee.objectClone(NaN)));
+    });
+
+    it('clones arrays', function() {
+        var vals = [
+                [],
+                ['a', 'b', 'c'],
+            ];
+        vals.forEach(function(val) {
+            assert.deepEqual(testee.objectClone(val), val);
+        });
+    });
+
+    it('clones objects', function() {
+        var vals = [
+                {},
+                { color: 'red' },
+                { color: 'red', side: 'left' },
+            ];
+        vals.forEach(function(val) {
+            assert.deepEqual(testee.objectClone(val), val);
+        });
+    });
+
+    it('clones recursively', function() {
+        var val = {
+                a: {
+                    color: 'red',
+                    side: 'left',
+                    foo: [ 'b', 'ba', 'bar' ],
+                },
+                b: [ 'a', 'b', 'c' ],
+                c: [
+                    { x: 12, y: 22 },
+                    [ [], [[], 3] ],
+                ],
+            };
+        assert.deepEqual(testee.objectClone(val), val);
+    });
+});
+
+
+describe('objectMerge()', function() {
     var testee = loadTestee();
 
     it('merges simple objects', function() {
@@ -78,11 +138,11 @@ describe('merger()', function() {
                 c: 'c-bbb',
             },
             have;
-        have = testee.merger(a, b, options);
+        have = testee.objectMerge(b, a, options);
         assert.deepEqual(have, want);
     });
 
-    it('recursively merges', function() {
+    it('merges recursively', function() {
         var a = {
                 a: {
                     a: 'a-a-aaa',
@@ -112,7 +172,7 @@ describe('merger()', function() {
                 },
             },
             have;
-        have = testee.merger(a, b, options);
+        have = testee.objectMerge(b, a, options);
         assert.deepEqual(have, want);
     });
 
@@ -128,7 +188,7 @@ describe('merger()', function() {
                 a: [ 'm', 'n', 'o' ],
             },
             have;
-        have = testee.merger(a, b, options);
+        have = testee.objectMerge(b, a, options);
         assert.deepEqual(have, want);
     });
 
@@ -156,7 +216,7 @@ describe('merger()', function() {
                 e: '',
             },
             have;
-        have = testee.merger(a, b, options);
+        have = testee.objectMerge(b, a, options);
         assert.deepEqual(have, want);
     });
 });
@@ -169,7 +229,10 @@ describe('sectionsFromRaw()', function() {
         var raw = {},
             options = {},
             want = [
-                [ {}, {} ],
+                {
+                    context: {},
+                    config: {},
+                },
             ],
             have;
         have = testee.TEST.sectionsFromRaw(raw, options);
@@ -182,12 +245,12 @@ describe('sectionsFromRaw()', function() {
             },
             options = {},
             want = [
-                [
-                    {},
-                    {
+                {
+                    context: {},
+                    config: {
                         color: 'red'
-                    }
-                ],
+                    },
+                },
             ],
             have;
         have = testee.TEST.sectionsFromRaw(raw, options);
@@ -203,18 +266,18 @@ describe('sectionsFromRaw()', function() {
             },
             options = {},
             want = [
-                [
-                    {},
-                    {
+                {
+                    context: {},
+                    config: {
                         color: 'red'
                     }
-                ],
-                [
-                    { env: 'dev' },
-                    {
+                },
+                {
+                    context: { env: 'dev' },
+                    config: {
                         color: 'blue'
                     }
-                ],
+                },
             ],
             have;
         have = testee.TEST.sectionsFromRaw(raw, options);
@@ -236,30 +299,30 @@ describe('sectionsFromRaw()', function() {
             },
             options = {},
             want = [
-                [
-                    {},
-                    {
+                {
+                    context: {},
+                    config: {
                         color: 'red'
                     }
-                ],
-                [
-                    { env: 'dev' },
-                    {
+                },
+                {
+                    context: { env: 'dev' },
+                    config: {
                         color: 'blue'
                     }
-                ],
-                [
-                    { env: 'prod' },
-                    {
+                },
+                {
+                    context: { env: 'prod' },
+                    config: {
                         color: 'green'
                     }
-                ],
-                [
-                    { env: 'prod', colo: 'east' },
-                    {
+                },
+                {
+                    context: { env: 'prod', colo: 'east' },
+                    config: {
                         color: 'yellow'
                     }
-                ],
+                },
             ],
             have;
         have = testee.TEST.sectionsFromRaw(raw, options);
@@ -295,7 +358,12 @@ describe('Config()', function() {
             var options = { color: 'blue' },
                 fig = new testee.Config({}, options);
             assert.deepEqual(fig.options, options);
-            assert.deepEqual(fig.sections, [[{}, {}]]);
+            assert.deepEqual(fig.sections, [
+                {
+                    context: {},
+                    config: {}
+                }
+            ]);
         });
     });
 
@@ -353,9 +421,14 @@ describe('Config()', function() {
     describe('merge()', function() {
         it('runs the algorithm', function() {
             var fig = new testee.Config({}),
-                mergerCalled = false;
-            testee.merger = function(a, b, opts) {
+                mergerCalled = false,
+                have;
+            testee.objectMerge = function(b, a, opts) {
                 mergerCalled = true;
+                // shallow merge, just for testing
+                Object.keys(b).forEach(function(key) {
+                    a[key] = b[key];
+                });
                 return b;
             };
             have = fig.merge([
