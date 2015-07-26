@@ -361,6 +361,29 @@ describe('sectionsFromSource()', function() {
         ]);
     });
 
+    it('supports encoded characters', function() {
+        var source = {
+                color: 'red',
+                '__context?colo=boca%20raton': {
+                    color: 'blue'
+                },
+            },
+            options = {},
+            context = {env: 'prod'},
+            have;
+        have = testee.TEST.sectionsFromSource(source, options, context);
+        assert.deepEqual(have, [
+            {
+                context: {env: 'prod'},
+                config: {color: 'red'}
+            },
+            {
+                context: {env: 'prod', colo: 'boca raton'},
+                config: {color: 'blue'}
+            },
+        ]);
+    });
+
     it('supports deeply nested contexts', function() {
         var source = {
                 color: 'red',
