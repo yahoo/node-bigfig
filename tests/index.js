@@ -225,108 +225,304 @@ describe('objectMerge()', function() {
 describe('sectionsFromSource()', function() {
     var testee = loadTestee();
 
-    it('works for an empty config', function() {
-        var raw = {},
-            options = {},
-            want = [
-                {
-                    context: {},
-                    config: {},
-                },
-            ],
-            have;
-        have = testee.TEST.sectionsFromSource(raw, options);
-        assert.deepEqual(have, want);
-    });
-
-    it('works for a simple config', function() {
-        var raw = {
-                color: 'red'
+    it('works with a simple section', function() {
+        var source = {
+                color: 'red',
+                side: 'left'
             },
             options = {},
-            want = [
-                {
-                    context: {},
-                    config: {
-                        color: 'red'
-                    },
-                },
-            ],
+            context = {
+                env: 'prod'
+            },
             have;
-        have = testee.TEST.sectionsFromSource(raw, options);
-        assert.deepEqual(have, want);
+        have = testee.TEST.sectionsFromSource(source, options, context);
+        assert.deepEqual(have, [
+            {
+                context: {env: 'prod'},
+                config: {
+                    color: 'red',
+                    side: 'left'
+                }
+            }
+        ]);
     });
 
-    it('works for a config with one section', function() {
-        var raw = {
-                "color": "red",
-                "__context?env=dev": {
-                    "color": "blue"
+    it('supports deeply nested objects', function() {
+        var source = {
+                color: 'red',
+                side: 'left',
+                db: {
+                    host: 'localhost',
+                    port: 1234,
+                    settings: {
+                        timeout: 11
+                    }
+                },
+                there: {
+                    is: {
+                        an: {
+                            old: 'lady',
+                            who: 'lived',
+                            in: [ 'a', 'shoe' ]
+                        }
+                    }
                 }
             },
             options = {},
-            want = [
-                {
-                    context: {},
-                    config: {
-                        color: 'red'
-                    }
-                },
-                {
-                    context: { env: 'dev' },
-                    config: {
-                        color: 'blue'
-                    }
-                },
-            ],
+            context = {
+                env: 'prod'
+            },
             have;
-        have = testee.TEST.sectionsFromSource(raw, options);
-        assert.deepEqual(have, want);
+        have = testee.TEST.sectionsFromSource(source, options, context);
+        assert.deepEqual(have, [
+            {
+                context: {env: 'prod'},
+                config: {
+                    color: 'red',
+                    side: 'left',
+                    db: {
+                        host: 'localhost',
+                        port: 1234,
+                        settings: {
+                            timeout: 11
+                        }
+                    },
+                    there: {
+                        is: {
+                            an: {
+                                old: 'lady',
+                                who: 'lived',
+                                in: [ 'a', 'shoe' ]
+                            }
+                        }
+                    }
+                }
+            }
+        ]);
     });
 
-    it('works for a config with several section', function() {
-        var raw = {
-                "color": "red",
-                "__context?env=dev": {
-                    "color": "blue"
+    it('supports direct child contexts', function() {
+        var source = {
+                color: 'red',
+                '__context?env=dev': {
+                    color: 'blue'
                 },
-                "__context?env=prod": {
-                    "color": "green"
+                '__context?env=prod': {
+                    color: 'green'
                 },
-                "__context?env=prod&colo=east": {
-                    "color": "yellow"
+                '__context?env=prod&colo=east': {
+                    color: 'yellow'
                 },
             },
             options = {},
-            want = [
-                {
-                    context: {},
-                    config: {
-                        color: 'red'
-                    }
-                },
-                {
-                    context: { env: 'dev' },
-                    config: {
-                        color: 'blue'
-                    }
-                },
-                {
-                    context: { env: 'prod' },
-                    config: {
-                        color: 'green'
-                    }
-                },
-                {
-                    context: { env: 'prod', colo: 'east' },
-                    config: {
-                        color: 'yellow'
-                    }
-                },
-            ],
+            context = {},
             have;
-        have = testee.TEST.sectionsFromSource(raw, options);
-        assert.deepEqual(have, want);
+        have = testee.TEST.sectionsFromSource(source, options, context);
+        assert.deepEqual(have, [
+            {
+                context: {},
+                config: {color: 'red'}
+            },
+            {
+                context: {env: 'dev'},
+                config: {color: 'blue'}
+            },
+            {
+                context: {env: 'prod' },
+                config: {color: 'green'}
+            },
+            {
+                context: {env: 'prod', colo: 'east'},
+                config: {color: 'yellow'}
+            }
+        ]);
+    });
+
+    it('supports deeply nested contexts', function() {
+        var source = {
+                color: 'red',
+                '__context?env=dev': {
+                    db: {
+                        host: 'localhost',
+                        port: 1234,
+                        settings: {
+                            timeout: 11
+                        }
+                    }
+                },
+                '__context?env=prod': {
+                    '__context?colo=west': {
+                        color: 'blue',
+                    }
+                },
+                '__context?env=prod&colo=east': {
+                    color: 'yellow'
+                },
+            },
+            options = {},
+            context = {},
+            have;
+        have = testee.TEST.sectionsFromSource(source, options, context);
+        assert.deepEqual(have, [
+            {
+                context: {},
+                config: {color: 'red'}
+            },
+            {
+                context: {env: 'dev'},
+                config: {
+                    db: {
+                        host: 'localhost',
+                        port: 1234,
+                        settings: {
+                            timeout: 11
+                        }
+                    }
+                }
+            },
+            {
+                context: {env: 'prod', colo: 'west'},
+                config: {color: 'blue'}
+            },
+            {
+                context: {env: 'prod', colo: 'east'},
+                config: {color: 'yellow'}
+            }
+        ]);
+    });
+
+    it('supports both deeply nested objects and deeply nested contexts', function() {
+        var source = {
+                apiURL: "http://localhost:3001/",
+                assetURL: "http://localhost:3000/static",
+                "__context?runtime=server": {
+                    listenPort: 3000,
+                    memcache: {
+                        host: "localhost",
+                        port: 11211
+                    },
+                },
+                "__context?env=staging": {
+                    listenPort: 80,
+                    apiURL: "http://staging.mysite.com:4080/",
+                    assetURL: "http://staging.mysite.com/static",
+                    memcache: {
+                        host: "memcache.staging.mysite.com"
+                    }
+                },
+                "__context?env=production": {
+                    apiURL: "http://api.mysite.com/",
+                    assetURL: "http://cdn.provider.com/mysite/",
+                    "__context?secure=true": {
+                        assetURL: "https://cdn.provider.com/mysite/"
+                    }
+                },
+                "__context?env=production&runtime=server": {
+                    listenPort: 80,
+                    "__context?colo=east": {
+                        apiURL: "http://api.east.mysite.com:4080/",
+                        memcache: {
+                            host: "memcache.east.mysite.com",
+                            port: 11666
+                        }
+                    },
+                    "__context?colo=west": {
+                        apiURL: "http:/api.west.mysite.com:4080/",
+                        memcache: {
+                            host: "memcache.west.mysite.com"
+                        }
+                    }
+                },
+                foo: {
+                    bar: 12,
+                    "__context?alien=mork": {
+                        bar: 333
+                    }
+                }
+            },
+            options = {},
+            context = {},
+            have;
+        have = testee.TEST.sectionsFromSource(source, options, context);
+        assert.deepEqual(have, [
+            {
+                context: {},
+                config: {
+                    apiURL: "http://localhost:3001/",
+                    assetURL: "http://localhost:3000/static",
+                    foo: {
+                        bar: 12
+                    }
+                }
+            },
+            {
+                context: {runtime: 'server'},
+                config: {
+                    listenPort: 3000,
+                    memcache: {
+                        host: "localhost",
+                        port: 11211
+                    },
+                }
+            },
+            {
+                context: {env: 'staging'},
+                config: {
+                    listenPort: 80,
+                    apiURL: "http://staging.mysite.com:4080/",
+                    assetURL: "http://staging.mysite.com/static",
+                    memcache: {
+                        host: "memcache.staging.mysite.com"
+                    }
+                }
+            },
+            {
+                context: {env: 'production'},
+                config: {
+                    apiURL: "http://api.mysite.com/",
+                    assetURL: "http://cdn.provider.com/mysite/",
+                }
+            },
+            {
+                context: {env: 'production', secure: 'true'},
+                config: {
+                    assetURL: "https://cdn.provider.com/mysite/"
+                }
+            },
+            {
+                context: {env: 'production', runtime: 'server'},
+                config: {
+                    listenPort: 80,
+                }
+            },
+            {
+                context: {env: 'production', runtime: 'server', colo: 'east'},
+                config: {
+                    apiURL: "http://api.east.mysite.com:4080/",
+                    memcache: {
+                        host: "memcache.east.mysite.com",
+                        port: 11666
+                    }
+                }
+            },
+            {
+                context: {env: 'production', runtime: 'server', colo: 'west'},
+                config: {
+                    apiURL: "http:/api.west.mysite.com:4080/",
+                    memcache: {
+                        host: "memcache.west.mysite.com"
+                    }
+                }
+            },
+            {
+                context: {alien: 'mork'},
+                config: {
+                    foo: {
+                        bar: 333
+                    }
+                }
+            }
+        ]);
     });
 });
 

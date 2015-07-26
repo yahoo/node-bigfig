@@ -11,8 +11,9 @@ function isObject(obj) {
 
 function matcher(sectionContext, runContext, options) {
     var keys = Object.keys(sectionContext),
-        k, key;
-    for (k = 0; k < keys.length; k++) {
+        k, len = keys.length,
+        key;
+    for (k = 0; k < len; k++) {
         key = keys[k];
         // IDEA -- dimension value hierarchy
         if (sectionContext[key] !== runContext[key]) {
@@ -25,7 +26,7 @@ function matcher(sectionContext, runContext, options) {
 
 function objectClone(oldO) {
     var newO,
-        i;
+        i, len;
     if (typeof oldO !== 'object') {
         return oldO;
     }
@@ -34,7 +35,8 @@ function objectClone(oldO) {
     }
     if (Array.isArray(oldO)) {
         newO = [];
-        for (i = 0; i < oldO.length; i += 1) {
+        len = oldO.length;
+        for (i = 0; i < len; i++) {
             newO[i] = ME.objectClone(oldO[i]);
         }
         return newO;
@@ -73,40 +75,71 @@ function objectMerge(to, from, options) {
 }
 
 
-// turns source into a list of {context, config} sections
-// preserved semantic order found in source
-function sectionsFromSource(source, options) {
+// This is the heart of the complexity of this library.
+// This recursive function takes a source and returns a list of sections, each
+// section containing a context and the configuration to use for that context.
+function sectionsFromSource(source, options, context) {
     var sections = [],
-        root = {};
+        subContext,
+        root = {};  // configuration which isn't further contextualized
 
     Object.keys(source).forEach(function(key) {
-        // IDEA -- custom special key prefix
+        var val = source[key],
+            subSections;
+
         if ('__context?' === key.substr(0, 10)) {
-            sections.push({
-                context: LIBS.qs.parse(key.substr(10)),
-                config: source[key]
-            });
+            subContext = {};
+            objectMerge(subContext, context);
+            objectMerge(subContext, LIBS.qs.parse(key.substr(10)));
+            subSections = sectionsFromSource(val, options, subContext);
+
+            // Optimize away a nested object which was just used to hold child contexts.
+            val = subSections[0].config;    // the first is the "root"
+            if (subSections.length > 1 && isObject(val) && Object.keys(val).length === 0) {
+                subSections.shift();
+            }
         }
         else {
-            root[key] = source[key];
+            if (isObject(val)) {
+                subSections = sectionsFromSource(val, options, context);
+                val = subSections.shift().config;   // first is the "root"
+                root[key] = val;
+
+                // This is where we maintain the config path of context
+                // sections found deep in the source.
+                subSections.forEach(function(section) {
+                    var config = {};
+                    config[key] = section.config;
+                    section.config = config;
+                });
+            }
+            else {
+                root[key] = val;
+            }
+        }
+
+        // This is how we return a flattened list of sections.
+        if (subSections && subSections.length) {
+            sections = sections.concat(subSections);
         }
     });
+
+    // Always add the "root" section since we rely on it in a couple places above.
     sections.unshift({
-        context: {},
+        context: context,
         config: root
     });
 
-    // TODO -- refactor deeply hierarchical configs
     return sections;
 }
 
 
 function Config(source, options) {
-    if (!isObject(source) || Array.isArray(source)) {
+    if (!isObject(source)) {
         throw new Error('bigfig only supports object configs');
     }
     this.options = options || {};
-    this.sections = sectionsFromSource(source, this.options);
+    this.sections = sectionsFromSource(source, this.options, {});
 }
 Config.prototype = {
 
@@ -131,8 +164,7 @@ Config.prototype = {
 
     merge: function merge(sections, options) {
         var config = {},
-            s,
-            len = sections.length;
+            s, len = sections.length;
         for (s = 0; s < len; s++) {
             ME.objectMerge(config, ME.objectClone(sections[s]), options);
         }
