@@ -119,7 +119,7 @@ details on how to replace this with your own algorithm.
 * returns {Boolean} true if `runContext` matches `sectionContext`
 
 
-### `objectClone(oldObject)` <a name="objectClone"></a>
+### `cloner(oldObject)` <a name="cloner"></a>
 This is a low-level utility for cloning an object. You usually don't need to
 call this or overrride this.
 
@@ -127,7 +127,7 @@ call this or overrride this.
 * returns {Object} a copy of the object
 
 
-### `objectMerge(to, from, options)` <a name="objectMerge"></a>
+### `merger(to, from, options)` <a name="merger"></a>
 The default merge algorithm. See "Customizing the Merge Algorithm" below for
 details on how to replace this with your own algorithm.
 

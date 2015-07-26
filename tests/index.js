@@ -61,7 +61,7 @@ describe('matcher()', function() {
 });
 
 
-describe('objectClone()', function() {
+describe('cloner()', function() {
     var testee = loadTestee();
 
     it('clones scalars', function() {
@@ -75,9 +75,9 @@ describe('objectClone()', function() {
                 -Infinity,
             ];
         vals.forEach(function(val) {
-            assert(testee.objectClone(val) === val);
+            assert(testee.cloner(val) === val);
         });
-        assert(Number.isNaN(testee.objectClone(NaN)));
+        assert(Number.isNaN(testee.cloner(NaN)));
     });
 
     it('clones arrays', function() {
@@ -86,7 +86,7 @@ describe('objectClone()', function() {
                 ['a', 'b', 'c'],
             ];
         vals.forEach(function(val) {
-            assert.deepEqual(testee.objectClone(val), val);
+            assert.deepEqual(testee.cloner(val), val);
         });
     });
 
@@ -97,7 +97,7 @@ describe('objectClone()', function() {
                 { color: 'red', side: 'left' },
             ];
         vals.forEach(function(val) {
-            assert.deepEqual(testee.objectClone(val), val);
+            assert.deepEqual(testee.cloner(val), val);
         });
     });
 
@@ -114,12 +114,12 @@ describe('objectClone()', function() {
                     [ [], [[], 3] ],
                 ],
             };
-        assert.deepEqual(testee.objectClone(val), val);
+        assert.deepEqual(testee.cloner(val), val);
     });
 });
 
 
-describe('objectMerge()', function() {
+describe('merger()', function() {
     var testee = loadTestee();
 
     it('merges simple objects', function() {
@@ -138,7 +138,7 @@ describe('objectMerge()', function() {
                 c: 'c-bbb',
             },
             have;
-        have = testee.objectMerge(a, b, options);
+        have = testee.merger(a, b, options);
         assert.deepEqual(have, want);
     });
 
@@ -172,7 +172,7 @@ describe('objectMerge()', function() {
                 },
             },
             have;
-        have = testee.objectMerge(a, b, options);
+        have = testee.merger(a, b, options);
         assert.deepEqual(have, want);
     });
 
@@ -188,7 +188,7 @@ describe('objectMerge()', function() {
                 a: [ 'm', 'n', 'o' ],
             },
             have;
-        have = testee.objectMerge(a, b, options);
+        have = testee.merger(a, b, options);
         assert.deepEqual(have, want);
     });
 
@@ -216,7 +216,7 @@ describe('objectMerge()', function() {
                 e: '',
             },
             have;
-        have = testee.objectMerge(a, b, options);
+        have = testee.merger(a, b, options);
         assert.deepEqual(have, want);
     });
 });
@@ -619,7 +619,7 @@ describe('Config()', function() {
             var fig = new testee.Config({}),
                 mergerCalled = false,
                 have;
-            testee.objectMerge = function(a, b, opts) {
+            testee.merger = function(a, b, opts) {
                 mergerCalled = true;
                 // shallow merge, just for testing
                 Object.keys(b).forEach(function(key) {

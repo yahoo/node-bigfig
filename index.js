@@ -24,7 +24,7 @@ function matcher(sectionContext, runContext, options) {
 }
 
 
-function objectClone(oldO) {
+function cloner(oldO) {
     var newO,
         i, len;
     if (typeof oldO !== 'object') {
@@ -37,7 +37,7 @@ function objectClone(oldO) {
         newO = [];
         len = oldO.length;
         for (i = 0; i < len; i++) {
-            newO[i] = ME.objectClone(oldO[i]);
+            newO[i] = ME.cloner(oldO[i]);
         }
         return newO;
     }
@@ -45,14 +45,14 @@ function objectClone(oldO) {
     for (i in oldO) {
         /* istanbul ignore else hasOwnProperty in loop */
         if (oldO.hasOwnProperty(i)) {
-            newO[i] = ME.objectClone(oldO[i]);
+            newO[i] = ME.cloner(oldO[i]);
         }
     }
     return newO;
 }
 
 
-function objectMerge(to, from, options) {
+function merger(to, from, options) {
     var key;
     for (key in from) {
         /* istanbul ignore else hasOwnProperty in loop */
@@ -60,7 +60,7 @@ function objectMerge(to, from, options) {
             if (to.hasOwnProperty(key)) {
                 if (from[key] && isObject(from[key])) {
                     // exists in destination -- merge
-                    to[key] = ME.objectMerge(to[key], from[key], options);
+                    to[key] = ME.merger(to[key], from[key], options);
                 } else {
                     // exists in destination -- clobber
                     to[key] = from[key];
@@ -89,8 +89,8 @@ function sectionsFromSource(source, options, context) {
 
         if ('__context?' === key.substr(0, 10)) {
             subContext = {};
-            objectMerge(subContext, context);
-            objectMerge(subContext, LIBS.qs.parse(key.substr(10)));
+            merger(subContext, context);
+            merger(subContext, LIBS.qs.parse(key.substr(10)));
             subSections = sectionsFromSource(val, options, subContext);
 
             // Optimize away a nested object which was just used to hold child contexts.
@@ -166,7 +166,7 @@ Config.prototype = {
         var config = {},
             s, len = sections.length;
         for (s = 0; s < len; s++) {
-            ME.objectMerge(config, ME.objectClone(sections[s]), options);
+            ME.merger(config, ME.cloner(sections[s]), options);
         }
         return config;
     },
@@ -176,8 +176,8 @@ Config.prototype = {
 
 ME.Config = Config;
 ME.matcher = matcher;
-ME.objectClone = objectClone;
-ME.objectMerge = objectMerge;
+ME.cloner = cloner;
+ME.merger = merger;
 
 // mainly for testing
 ME.TEST = {
