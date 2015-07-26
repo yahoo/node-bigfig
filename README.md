@@ -36,8 +36,8 @@ Features <a name="features"></a>
 * can use your own disk access algorithms (sync or async, cached reads, etc)
 
 ### optimized
-* match and merge algorithms have been optimized for speed and low GC overhead
 * constructor studies source so that `read()` runs as fast a possible
+* match and merge algorithms have been optimized for speed and low GC overhead
 
 
 
@@ -47,7 +47,87 @@ This example is a bit complex to demonstrate some of the value/features of this 
 Your config only needs to be as complicated as you need it to be :)
 
 ```js
-TODO
+var bigfig = require("./index.js");
+var fig, config;
+fig = new bigfig.Config({
+        // default (development)
+        apiURL: "http://localhost:3001/",
+
+        // one approach to dealing with assets links embeded in the page
+        assetURL: "http://localhost:3000/static",
+
+        // don't expose this config to the client!
+        "__context?runtime=server": {
+            listenPort: 3000,
+            memcache: {
+                host: "localhost",
+                port: 11211
+            },
+        },
+
+        // stand-alone staging environment for validation testing
+        "__context?env=staging": {
+            listenPort: 80,
+            apiURL: "http://staging.mysite.com:4080/",
+            assetURL: "http://staging.mysite.com/static",
+            memcache: {
+                host: "memcache.staging.mysite.com"
+            }
+        },
+
+        // adjust the config for production hosts
+        "__context?env=production": {
+            apiURL: "http://api.mysite.com/",
+            assetURL: "http://cdn.provider.com/mysite/",
+            "__context?secure=true": {
+                assetURL: "https://cdn.provider.com/mysite/"
+            }
+        },
+
+        "__context?env=production&runtime=server": {
+            listenPort: 80,
+            // perhaps you have more than one type of production host
+            "__context?colo=east": {
+                apiURL: "http://api.east.mysite.com:4080/",
+                memcache: {
+                    host: "memcache.east.mysite.com",
+                    // for some legacy reason the eastern memcached is on a weird port
+                    port: 11666
+                }
+            },
+            "__context?colo=west": {
+                apiURL: "http:/api.west.mysite.com:4080/",
+                memcache: {
+                    host: "memcache.west.mysite.com"
+                }
+            }
+        }
+    });
+
+config = fig.read({
+    runtime: "server",  // the generated config will be used by the app
+    env: "production",  // might come from process.env.NODE_ENV
+    colo: "east"        // might be interpreted from the hostname
+});
+// {
+//     apiURL: 'http://api.east.mysite.com:4080/',
+//     assetURL: 'http://cdn.provider.com/mysite/',
+//     listenPort: 80,
+//     memcache: {
+//         host: 'memcache.east.mysite.com',
+//         port: 11666
+//     }
+// }
+
+config = fig.read({
+    runtime: "client",
+    env: "production",
+    secure: "true",     // might come from req.protocol === "https"
+});
+// {
+//     apiURL: 'http://api.mysite.com/',
+//     assetURL: 'https://cdn.provider.com/mysite/'
+// }
 ```
 
 
@@ -173,14 +253,34 @@ Some features that might be nice to have some day.
 
 Special Thanks <a name="thanks"></a>
 --------------
-Bigfig is a direct decendent of the `ycb` npm module, which pioneered many of
-the ideas and priorities expressed in this library.
+Bigfig is a direct decendent of [ycb](https://www.npmjs.com/package/ycb),
+which pioneered many of the ideas and priorities expressed in this library.
 
 
 
 License <a name="license"></a>
 -------
-TODO
+MIT License
+
+Copyright (c) 2015, Yahoo! Inc. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 
 
