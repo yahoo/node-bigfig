@@ -1,3 +1,5 @@
 *.log
-coverage
-node_modules
+notes.txt
+coverage/
+node_modules/
+perf/

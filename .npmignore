@@ -1,3 +1,6 @@
+*.log
 notes.txt
-tests
-coverage
+CONTRIBUTING.md
+coverage/
+perf/
+tests/
