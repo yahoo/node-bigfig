@@ -1,6 +1,5 @@
-var LIBS = {
-        qs: require('querystring'),
-    },
+var // GLOBALS ARE ALL CAPS
+    QS = require('querystring'),
     ME = module.exports;
 
 
@@ -90,7 +89,7 @@ function sectionsFromSource(source, options, context) {
         if ('__context?' === key.substr(0, 10)) {
             subContext = {};
             merger(subContext, context);
-            merger(subContext, LIBS.qs.parse(key.substr(10)));
+            merger(subContext, QS.parse(key.substr(10)));
             subSections = sectionsFromSource(val, options, subContext);
 
             // Optimize away a nested object which was just used to hold child contexts.
@@ -181,7 +180,6 @@ ME.merger = merger;
 
 // mainly for testing
 ME.TEST = {
-    LIBS: LIBS,
     sectionsFromSource: sectionsFromSource,
 };
 
