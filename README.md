@@ -2,7 +2,11 @@ bigfig
 ======
 configuration objects that vary based on multiple considerations
 
-Quick Reference:
+**Intended Audience:**
+Applications which have complicated deployments, and so need to be configured
+in particular ways for particular environments.
+
+**API Quick Reference:**
 [source](#source),
 [constructor](#constructor),
 [read()](#read)
@@ -14,26 +18,28 @@ Features <a name="features"></a>
 ### customize configuration based on many concerns
 * for some apps a single "development versus production" distinction might be
   too simple
-* can use the same source/file to configure both the client (customized for
+* arbitrary set of names and values, which you define, to describe when the
+  config should be customized
+* library assumes no keys or values (not even based on `NODE_ENV`), so it
+  doesn't dictate how you solve your problem
+* the same source can be used to configure both the client (customized for
   each request) and the server (customized to the server environment), sharing
   details as appropriate and protecting details as appropriate
-* unlimited number of dimensions, assuming nothing, to conform to your
-  situation
 
 ### works on JSON-like objects
-* scalars and objects and arrays
-* arbitrarily deeply nested
+* scalars and arrays and objects
+* arbitrarily deeply nested objects
+
+### focused on one problem
+* allows you to use other libraries for their strengths
+* can use other libraries for custom disk formats (yaml, cson, json5, etc)
+* can use your own disk access algorithms (sync or async, cached reads, etc)
 
 ### customizable
 * can use your own object merge algorithm (for example, to tweak how arrays
   are merged)
 * can use your own match algorithm (for example, to match a dynamic range of
   values)
-
-### focused on solving one problem
-* allows you to use other libraries for their strengths
-* can use other libraries for custom disk formats (yaml, cson, json5, etc)
-* can use your own disk access algorithms (sync or async, cached reads, etc)
 
 ### optimized
 * constructor studies source so that `read()` runs as fast a possible
@@ -43,8 +49,8 @@ Features <a name="features"></a>
 
 Example <a name="example"></a>
 -------
-This example is a bit complex to demonstrate some of the value/features of this library.
-Your config only needs to be as complicated as you need it to be :)
+This example is a bit complex to demonstrate some of the value/features of
+this library. Your config can be as simple/complex as you need it to be 😀
 
 ```js
 var bigfig = require("./index.js");
@@ -53,7 +59,7 @@ fig = new bigfig.Config({
         // default (development)
         apiURL: "http://localhost:3001/",
 
-        // one approach to dealing with assets links embeded in the page
+        // one approach to dealing with asset links embeded in the page
         assetURL: "http://localhost:3000/static",
 
         // don't expose this config to the client!
@@ -134,9 +140,76 @@ config = fig.read({
 
 Source Object Format <a name="source"></a>
 --------------------
-TODO
-describe `__context`, etc
-special keys don't need to be quoted in yaml
+The source of the configuration is a JSON-like object -- an object with
+scalars, and objects and arrays which can be nested arbitrarily deep.
+
+```js
+{
+    port: 80,
+    memcache: {
+        host: "localhost",
+        port: 11211,
+        settings: {
+            timeout: 1000
+        }
+    }
+}
+```
+
+This simple config we call a **default** or **root**.
+
+(If this simple configuration meets your needs then you probably don't need
+this library 😀)
+
+You can, however, add **sections**, each of which describes how the config
+should be different for a different situation. The situation is described by a
+set of keys and values we call a **context**.
+
+```js
+{
+    ...
+    "__context?env=staging": {
+        memcache: {
+            host: "memcache.staging.mysite.com"
+        }
+    },
+    "__context?env=production": {
+        memcache: {
+            host: "memcache.mysite.com"
+        }
+    }
+}
+```
+
+As well, a section can have further speciallizations within it.
+
+```js
+{
+    ...
+    "__context?env=production": {
+        "__context?colo=east": {
+            memcache: {
+                host: "memcache.east.mysite.com"
+            }
+        },
+        "__context?colo=west": {
+            memcache: {
+                host: "memcache.west.mysite.com"
+            }
+        },
+    }
+}
+```
+
+The context keys have these properties:
+
+* keys and values formatted the same as URL query parameters. for example
+  `__context?env=production&colo=east`
+* special characters should be encoded just as for URL query parameters
+  (`%xx`)
+
+FWI, the special `__context?...` strings don't need to be quoted when used in YAML
+files.
 
 
 
@@ -190,8 +263,9 @@ There currently are no defined options.
 
 
 ### `matcher(sectionContext, runContext, options)` <a name="matcher"></a>
-The default match algorithm. See "Customizing the Match Algorithm" below for
-details on how to replace this with your own algorithm.
+The default match algorithm. See [Customizing the Match
+Algorithm](#custom-match) below for details on how to replace this with your
+own algorithm.
 
 * `sectionContext` {Object} the context generated from the `__context?` keys
   in the source
@@ -208,8 +282,9 @@ call this or overrride this.
 
 
 ### `merger(to, from, options)` <a name="merger"></a>
-The default merge algorithm. See "Customizing the Merge Algorithm" below for
-details on how to replace this with your own algorithm.
+The default merge algorithm. See [Customizing the Merge
+Algorithm](#custom-merge) below for details on how to replace this with your
+own algorithm.
 
 * `to` {Object} object into which the keys and values of `from` are
   recursively merged
@@ -232,13 +307,24 @@ TODO
 
 Optimizing Usage <a name="optimizing"></a>
 ----------------
-TODO
+If you want to trim the CPU, memory, and GC overhead of this library, here are
+some tricks:
+
+* Create a `Config` object once (perhaps at app startup) and call `read()`
+  multiple times. This library is specifically optimized for this usage
+  pattern.
+
+* The `read()` overhead depends on how many sections and how deeply nested the
+  configs are. More deeply nested configs mean more time is spent in merging
+  (which can also affect GC). Lots of sections means more time spent in
+  matching, which is a simple algorithm on long-lived objects (little GC
+  cost).
 
 
 
 Roadmap and Ideas <a name="ideas"></a>
 -----------------
-Some features that might be nice to have some day.
+Some features that might be nice to have some day:
 
 * customize special key prefix (instead of `__context?`)
 * dimension values can have a hierarchy (for example, `{env: 'prod/east'}`
