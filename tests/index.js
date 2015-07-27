@@ -338,9 +338,8 @@ describe('sectionsFromSource()', function() {
                 },
             },
             options = {},
-            context = {},
             have;
-        have = testee.TEST.sectionsFromSource(source, options, context);
+        have = testee.TEST.sectionsFromSource(source, options);
         assert.deepEqual(have, [
             {
                 context: {},
@@ -406,9 +405,8 @@ describe('sectionsFromSource()', function() {
                 },
             },
             options = {},
-            context = {},
             have;
-        have = testee.TEST.sectionsFromSource(source, options, context);
+        have = testee.TEST.sectionsFromSource(source, options);
         assert.deepEqual(have, [
             {
                 context: {},
@@ -487,9 +485,8 @@ describe('sectionsFromSource()', function() {
                 }
             },
             options = {},
-            context = {},
             have;
-        have = testee.TEST.sectionsFromSource(source, options, context);
+        have = testee.TEST.sectionsFromSource(source, options);
         assert.deepEqual(have, [
             {
                 context: {},

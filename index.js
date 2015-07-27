@@ -102,10 +102,12 @@ function merger(to, from, options) {
 // This is the heart of the complexity of this library.
 // This recursive function takes a source and returns a list of sections, each
 // section containing a context and the configuration to use for that context.
-function sectionsFromSource(source, options, context) {
+function sectionsFromSource(source, options, context, debugPath) {
     var sections = [],
         subContext,
         root = {};  // configuration which isn't further contextualized
+    context = context || {};
+    debugPath = debugPath || [];
 
     Object.keys(source).forEach(function(key) {
         var val = source[key],
@@ -114,8 +116,9 @@ function sectionsFromSource(source, options, context) {
         if ('__context?' === key.substr(0, 10)) {
             subContext = {};
             merger(subContext, context);
+            // TODO -- warn/error if key context clobbers path context
             merger(subContext, QS.parse(key.substr(10)));
-            subSections = sectionsFromSource(val, options, subContext);
+            subSections = sectionsFromSource(val, options, subContext, debugPath.concat([key]));
 
             // Optimize away a nested object which was just used to hold child contexts.
             val = subSections[0].config;    // the first is the "root"
@@ -125,7 +128,7 @@ function sectionsFromSource(source, options, context) {
         }
         else {
             if (isObject(val)) {
-                subSections = sectionsFromSource(val, options, context);
+                subSections = sectionsFromSource(val, options, context, debugPath.concat([key]));
                 val = subSections.shift().config;   // first is the "root"
                 root[key] = val;
 
@@ -163,7 +166,7 @@ function Config(source, options) {
         throw new Error('bigfig only supports object configs');
     }
     this.options = options || {};
-    this.sections = sectionsFromSource(source, this.options, {});
+    this.sections = sectionsFromSource(source, this.options);
 }
 Config.prototype = {
 
