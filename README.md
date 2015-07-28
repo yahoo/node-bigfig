@@ -3,13 +3,9 @@ bigfig
 configuration objects that vary based on multiple considerations
 
 **Intended Audience:**
-Applications which have complicated deployments, and so need to be configured
-in particular ways for particular environments.
+Applications which need to be configured in particular ways for different
+environments.
 
-**API Quick Reference:**
-[source](#source),
-[constructor](#constructor),
-[read()](#read)
 
 
 Features <a name="features"></a>
@@ -36,7 +32,7 @@ Features <a name="features"></a>
 * can use your own disk access algorithms (sync or async, cached reads, etc)
 
 ### customizable
-* can use your own object merge algorithm (for example, to tweak how arrays
+* can use your own object merge algorithm (for example, to adjust how arrays
   are merged)
 * can use your own match algorithm (for example, to match a dynamic range of
   values)
@@ -58,8 +54,6 @@ var fig, config;
 fig = new bigfig.Config({
         // default (development)
         apiURL: "http://localhost:3001/",
-
-        // one approach to dealing with asset links embeded in the page
         assetURL: "http://localhost:3000/static",
 
         // don't expose this config to the client!
@@ -111,7 +105,7 @@ fig = new bigfig.Config({
     });
 
 config = fig.read({
-    runtime: "server",  // the generated config will be used by the app
+    runtime: "server",
     env: "production",  // might come from process.env.NODE_ENV
     colo: "east"        // might be interpreted from the hostname
 });
@@ -127,7 +121,7 @@ config = fig.read({
 
 config = fig.read({
     runtime: "client",
-    env: "production",
+    env: "production",  // might come from process.env.NODE_ENV
     secure: "true",     // might come from req.protocol === "https"
 });
 // {
@@ -158,16 +152,23 @@ scalars, and objects and arrays which can be nested arbitrarily deep.
 
 This simple config we call a **default** or **root**.
 
-(If this simple configuration meets your needs then you probably don't need
-this library 😀)
+(If this simple approach meets your needs then you probably don't need this
+library 😀)
 
-You can, however, add **sections**, each of which describes how the config
-should be different for a different situation. The situation is described by a
-set of keys and values we call a **context**.
+You can add **sections**, each of which describes how the config should be
+different for a different situation. The situation is described by a set of
+keys and values we call a **context**.
 
 ```js
 {
-    ...
+    port: 80,
+    memcache: {
+        host: "localhost",
+        port: 11211,
+        settings: {
+            timeout: 1000
+        }
+    },
     "__context?env=staging": {
         memcache: {
             host: "memcache.staging.mysite.com"
@@ -185,7 +186,14 @@ As well, a section can have further speciallizations within it.
 
 ```js
 {
-    ...
+    port: 80,
+    memcache: {
+        host: "localhost",
+        port: 11211,
+        settings: {
+            timeout: 1000
+        }
+    },
     "__context?env=production": {
         "__context?colo=east": {
             memcache: {
@@ -201,14 +209,33 @@ As well, a section can have further speciallizations within it.
 }
 ```
 
+The section specializations can occur arbitrarily deep.
+
+```js
+{
+    port: 80,
+    memcache: {
+        host: "localhost",
+        port: 11211,
+        settings: {
+            timeout: 1000,
+            "__context?env=production": {
+                timeout: 500
+            }
+        }
+    }
+}
+```
+
 The context keys have these properties:
 
+* start with `__context?`
 * keys and values formatted the same as URL query parameters. for example
   `__context?env=production&colo=east`
 * special characters should be encoded just as for URL query parameters
   (`%xx`)
 
-FWI, the special `__context?...` strings don't need to be quoted when used in YAML
+FWI, the `__context?...` strings don't need to be quoted when used in YAML
 files.
 
 
@@ -216,23 +243,27 @@ files.
 API Reference <a name="api"></a>
 -------------
 
-### `Config(source, options)` constructor <a name="constructor"></a>
+### `Config(source, options)` constructor throws <a name="constructor"></a>
 This creates a new bigfig object, on which you can call `read()` multiple
 times with different contexts.
 
 * `source` {Object} the source of the configuration, as describe in [Source
   Object Format](#source) above
-* `options` {Object} an optional object containing settings used to tweak how
+* `options` {Object} an optional object containing settings used to adjust how
   the source is interpretted
 
 There currently are no defined options.
+
+This constructor will intentionally throw an error on the following condition:
+
+* The source is not an object. (Arrays and scalars are not accepted.)
 
 
 ### `Config.read(context, options)` method <a name="read"></a>
 Creates a config object, customized to the specified context.
 
 * `context` {Object} a simple object with dimension names and values
-* `options` {Object} an optional object containing settings used to tweak how
+* `options` {Object} an optional object containing settings used to adjust how
   the config object is created
 
 There currently are no defined options.
@@ -243,7 +274,7 @@ This lower-level method isn't normally called. It returns all sections which
 match the context.
 
 * `context` {Object} a simple object with dimension names and values
-* `options` {Object} an optional object containing settings used to tweak how
+* `options` {Object} an optional object containing settings used to adjust how
   the sections are matched
 * returns {Array} an array of config objects to merge
 
@@ -255,7 +286,7 @@ This lower-level method isn't normally called. It merges the sections into a
 configuration object.
 
 * `sections` {Array} an array of config objects to merge
-* `options` {Object} an optional object containing settings used to tweak how
+* `options` {Object} an optional object containing settings used to adjust how
   the configs are merged
 * returns {Object} a config object
 
@@ -270,38 +301,107 @@ own algorithm.
 * `sectionContext` {Object} the context generated from the `__context?` keys
   in the source
 * `runContext` {Object} the context passed to `read()` or `match()`
+* `options` {Object} an optional object containing settings used to adjust how
+  the contexts are matched
 * returns {Boolean} true if `runContext` matches `sectionContext`
+
+There currently are no defined options.
 
 
 ### `cloner(oldObject)` <a name="cloner"></a>
 This is a low-level utility for cloning an object. You usually don't need to
-call this or overrride this.
+call or overrride this function.
 
 * `oldObject` {Object} the object to clone
 * returns {Object} a copy of the object
 
 
-### `merger(to, from, options)` <a name="merger"></a>
+### `merger(base, changes, options)` <a name="merger"></a>
 The default merge algorithm. See [Customizing the Merge
 Algorithm](#custom-merge) below for details on how to replace this with your
 own algorithm.
 
-* `to` {Object} object into which the keys and values of `from` are
-  recursively merged
-* `from` {Object} object which contains changes to apply to `to`
-* returns {Object} the modified `to` object
+* `base` {Object} object whose keys and values will be modified by `changes`
+* `changes` {Object} object which contains changes to apply to `base`
+* `options` {Object} an optional object containing settings used to adjust how
+  the objects are merged
+* returns {Object} the merged object
+
+This merger has the following behavior:
+
+* objects are iterated, and values are recursively merged
+* a scalar (string, number, or boolean) in `changes` clobbers the value in
+  `base`
+* an array in `changes` clobbers the value in `base`
+
+There currently are no defined options.
 
 
 
 Customizing the Merge Algorithm <a name="custom-merge"></a>
 -------------------------------
-TODO
+Once this libraries has identified which sections to use, it needs to merge
+the sections down into a single config. This final config is what is returned
+from `read()`.
+
+It does this by merging each section onto the root — later sections in the
+source are merged over earlier sections. Each section is merged using the
+merger function, which defaults to the [one described above](#merger).
+
+If you want to override how merging happens you can replace the one exported
+by this module. Your customer merger should have the same signature as the
+default merger.
+
+```js
+var bigfig = require('bigfig');
+var hoek = require('hoek');
+var fig, config;
+fig = new bifgig.Config(...);
+
+bigfig.merger = function(base, changes, options) {
+    // use hoek's implementation
+    hoek.merge(base, changes, true, false);
+    return base;
+};
+
+config = fig.read({...});
+```
+
+### Optimizing a Custom Merger
+While the merger should return the config to use, it doesn't need to be a
+newly created object. The `base` argument can be returned, modified or
+unmodified. (This can be a bit tricky — it's suggested to create a unit test
+which has a complex source, and calls `read()` multiple times on a single
+`Config()` object.)
 
 
 
 Customizing the Match Algorithm <a name="custom-match"></a>
 -------------------------------
-TODO
+The context passed to `read()` is matched to each section in the source. This
+is done by calling the matcher, which defaults to the [one described
+above](#matcher).
+
+The matcher is called with the context in the section, the context passed to
+`read()`, and should return a boolean indicating whether that section should
+be used.
+
+If you want to override how matching happens you can replace the one exported
+by this module. Your custom matcher should have the same signature as the
+default merger.
+
+```js
+var bigfig = require('bigfig');
+var fig, config;
+fig = new bifgig.Config(...);
+
+bigfig.matcher = function(sectionContext, runContext, options) {
+    // this toy matcher only matches sections based on the `env` key
+    return sectionContext.env === runContext.env;
+};
+
+config = fig.read({...});
+```
 
 
 
@@ -322,10 +422,11 @@ some tricks:
 
 
 
-Roadmap and Ideas <a name="ideas"></a>
------------------
-Some features that might be nice to have some day:
+Ideas for Improvements <a name="ideas"></a>
+----------------------
+Some features that might be nice to have:
 
+* better way to replace the matcher and merger
 * customize special key prefix (instead of `__context?`)
 * dimension values can have a hierarchy (for example, `{env: 'prod/east'}`
   matches both `__context?env=prod` and `__context?env=prod/east`)

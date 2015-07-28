@@ -76,26 +76,26 @@ function cloner(oldO) {
 }
 
 
-function merger(to, from, options) {
+function merger(base, changes, options) {
     var key;
-    for (key in from) {
+    for (key in changes) {
         /* istanbul ignore else hasOwnProperty in loop */
-        if (from.hasOwnProperty(key)) {
-            if (to.hasOwnProperty(key)) {
-                if (from[key] && isObject(from[key])) {
+        if (changes.hasOwnProperty(key)) {
+            if (base.hasOwnProperty(key)) {
+                if (changes[key] && isObject(changes[key])) {
                     // exists in destination -- merge
-                    to[key] = ME.merger(to[key], from[key], options);
+                    base[key] = ME.merger(base[key], changes[key], options);
                 } else {
                     // exists in destination -- clobber
-                    to[key] = from[key];
+                    base[key] = changes[key];
                 }
             } else {
                 // doesn't exists in destination -- create
-                to[key] = from[key];
+                base[key] = changes[key];
             }
         }
     }
-    return to;
+    return base;
 }
 
 
@@ -193,7 +193,7 @@ Config.prototype = {
         var config = {},
             s, len = sections.length;
         for (s = 0; s < len; s++) {
-            ME.merger(config, ME.cloner(sections[s]), options);
+            config = ME.merger(config, ME.cloner(sections[s]), options);
         }
         return config;
     },
