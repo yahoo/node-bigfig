@@ -681,3 +681,88 @@ describe('Config()', function() {
 });
 
 
+describe('README.md', function() {
+    var testee = loadTestee();
+
+    it('example', function() {
+        var source, fig, have;
+        source = {
+            // default (development)
+            apiURL: "http://localhost:3001/",
+            assetURL: "http://localhost:3000/static",
+
+            // don't expose this config to the client!
+            "__context?runtime=server": {
+                listenPort: 3000,
+                memcache: {
+                    host: "localhost",
+                    port: 11211
+                },
+            },
+
+            // stand-alone staging environment for validation testing
+            "__context?env=staging": {
+                listenPort: 80,
+                apiURL: "http://staging.mysite.com:4080/",
+                assetURL: "http://staging.mysite.com/static",
+                memcache: {
+                    host: "memcache.staging.mysite.com"
+                }
+            },
+
+            // adjust the config for production hosts
+            "__context?env=production": {
+                apiURL: "http://api.mysite.com/",
+                assetURL: "http://cdn.provider.com/mysite/",
+                "__context?secure=true": {
+                    assetURL: "https://cdn.provider.com/mysite/"
+                }
+            },
+
+            "__context?env=production&runtime=server": {
+                listenPort: 80,
+                // perhaps you have more than one type of production host
+                "__context?colo=east": {
+                    apiURL: "http://api.east.mysite.com:4080/",
+                    memcache: {
+                        host: "memcache.east.mysite.com",
+                        // for some legacy reason the eastern memcached is on a weird port
+                        port: 11666
+                    }
+                },
+                "__context?colo=west": {
+                    apiURL: "http:/api.west.mysite.com:4080/",
+                    memcache: {
+                        host: "memcache.west.mysite.com"
+                    }
+                }
+            }
+        };
+        fig = new testee.Config(source);
+        have = fig.read({
+            runtime: "server",
+            env: "production",  // might come from process.env.NODE_ENV
+            colo: "east"        // might be interpreted from the hostname
+        });
+        assert.deepEqual(have, {
+            apiURL: 'http://api.east.mysite.com:4080/',
+            assetURL: 'http://cdn.provider.com/mysite/',
+            listenPort: 80,
+            memcache: {
+                host: 'memcache.east.mysite.com',
+                port: 11666
+            }
+        });
+        have = fig.read({
+            runtime: "client",
+            env: "production",  // might come from process.env.NODE_ENV
+            secure: "true",     // might come from req.protocol === "https"
+        });
+        assert.deepEqual(have, {
+            apiURL: 'http://api.mysite.com/',
+            assetURL: 'https://cdn.provider.com/mysite/'
+        });
+    });
+});
+
+
