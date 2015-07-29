@@ -235,7 +235,7 @@ The context keys have these properties:
 * special characters should be encoded just as for URL query parameters
   (`%xx`)
 
-FWI, the `__context?...` strings don't need to be quoted when used in YAML
+FYI, the `__context?...` strings don't need to be quoted when used in YAML
 files.
 
 
