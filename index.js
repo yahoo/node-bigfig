@@ -87,11 +87,11 @@ function merger(base, changes, options) {
                     base[key] = ME.merger(base[key], changes[key], options);
                 } else {
                     // exists in destination -- clobber
-                    base[key] = changes[key];
+                    base[key] = ME.cloner(changes[key]);
                 }
             } else {
                 // doesn't exists in destination -- create
-                base[key] = changes[key];
+                base[key] = ME.cloner(changes[key]);
             }
         }
     }
@@ -204,7 +204,7 @@ Config.prototype = {
         var config = {},
             s, len = sections.length;
         for (s = 0; s < len; s++) {
-            config = ME.merger(config, ME.cloner(sections[s]), options);
+            config = ME.merger(config, sections[s], options);
         }
         return config;
     },
