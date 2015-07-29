@@ -254,9 +254,22 @@ times with different contexts.
 
 There currently are no defined options.
 
-This constructor will intentionally throw an error on the following condition:
+This constructor will intentionally throw an error on the following conditions:
 
 * The source is not an object. (Arrays and scalars are not accepted.)
+* The source has a subsection which redefines a context key. Example:
+
+```js
+{
+    color: 'red',
+    "__context?env=production": {
+        color: 'green',
+        "__context?env=development": {
+            color: 'blue',
+        }
+    }
+}
+```
 
 
 ### `Config.read(context, options)` method <a name="read"></a>

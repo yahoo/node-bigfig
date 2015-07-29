@@ -574,23 +574,47 @@ describe('Config()', function() {
     var testee = loadTestee();
 
     describe('constructor', function() {
-        it('throws on bad input', function() {
-            var raws = [
+        it('throws on non-object input', function() {
+            var sources = [
                     null,
                     undefined,
                     'orange',
                     [ 'potato' ],
                     function() {},
                 ];
-            raws.forEach(function(raw) {
+            sources.forEach(function(source) {
                 var err;
                 try {
-                    new testee.Config(raw);
+                    new testee.Config(source);
                 } catch (e) {
                     err = e;
                 }
                 assert.equal(err.message, 'bigfig only supports object configs');
             });
+        });
+
+        it('throws if subsection clobbers path context', function() {
+            var source, fig, err;
+            source = {
+                db: {
+                    host: 'red'
+                },
+                "__context?env=production": {
+                    db: {
+                        host: 'green',
+                        "__context?colo=east&env=development": {
+                            host: 'blue',
+                        }
+                    }
+                }
+            };
+            try {
+                fig = new testee.Config(source);
+            }
+            catch (e) {
+                err = e;
+            }
+            assert.equal(err.message, 'subsection redefines "env" in existing context: __context?env=production -> db -> __context?colo=east&env=development');
         });
 
         it('works', function() {

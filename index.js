@@ -111,13 +111,24 @@ function sectionsFromSource(source, options, context, debugPath) {
 
     Object.keys(source).forEach(function(key) {
         var val = source[key],
+            keyContext,
             subSections;
 
         if ('__context?' === key.substr(0, 10)) {
             subContext = {};
-            merger(subContext, context);
-            // TODO -- warn/error if key context clobbers path context
-            merger(subContext, QS.parse(key.substr(10)));
+            Object.keys(context).forEach(function(k) {
+                subContext[k] = context[k];
+            });
+            keyContext = QS.parse(key.substr(10));
+            Object.keys(keyContext).forEach(function(k) {
+                if (subContext.hasOwnProperty(k) && subContext[k] != keyContext[k]) {
+                    throw new Error(
+                        'subsection redefines "' + k + '" in existing context: ' +
+                        debugPath.concat([key]).join(' -> ')
+                    );
+                }
+                subContext[k] = keyContext[k];
+            });
             subSections = sectionsFromSource(val, options, subContext, debugPath.concat([key]));
 
             // Optimize away a nested object which was just used to hold child contexts.
