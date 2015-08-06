@@ -1,6 +1,6 @@
 {
     "name": "bigfig",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "description": "configs that vary based on multiple considerations",
     "keywords": [
         "config",
@@ -20,9 +20,9 @@
     },
     "repository": {
         "type": "git",
-        "url": "git://github.com/drewfish/node-bigfig.git"
+        "url": "git://github.com/yahoo/node-bigfig.git"
     },
-    "homepage": "http://github.com/drewfish/node-bigfig/",
-    "bugs": "http://github.com/drewfish/node-bigfig/issues",
+    "homepage": "http://github.com/yahoo/node-bigfig/",
+    "bugs": "http://github.com/yahoo/node-bigfig/issues",
     "license": "MIT"
 }

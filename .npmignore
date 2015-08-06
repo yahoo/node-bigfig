@@ -1,6 +1,7 @@
 *.log
-notes.txt
+.editorconfig
 CONTRIBUTING.md
+notes.txt
 coverage/
 perf/
 tests/

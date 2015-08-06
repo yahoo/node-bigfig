@@ -235,8 +235,7 @@ The context keys have these properties:
 * special characters should be encoded just as for URL query parameters
   (`%xx`)
 
-FYI, the `__context?...` strings don't need to be quoted when used in YAML
-files.
+FYI, the `__context?...` keys don't need to be quoted in YAML files.
 
 
 
@@ -433,11 +432,43 @@ some tricks:
   matching, which is a simple algorithm on long-lived objects (little GC
   cost).
 
+Deeply nested sections are optimized by the constructor and so don't affect
+performance. The following two examples have the same performance during
+`read()`:
+
+```js
+{
+    memcache: {
+        settings: {
+            timeout: 1000,
+            "__context?env=production": {
+                timeout: 500
+            }
+        }
+    }
+}
+```
+```js
+{
+    memcache: {
+        settings: {
+            timeout: 1000
+        }
+    },
+    "__context?env=production": {
+        memcache: {
+            settings: {
+                timeout: 500
+            }
+        }
+    }
+}
+```
+
 
 
 Ideas for Improvements <a name="ideas"></a>
 ----------------------
-Some features that might be nice to have:
 
 * better way to replace the matcher and merger
 * customize special key prefix (instead of `__context?`)
@@ -462,7 +493,7 @@ License <a name="license"></a>
 -------
 MIT License
 
-Copyright (c) 2015, Yahoo! Inc. All rights reserved.
+Copyright 2015, Yahoo Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
