@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/yahoo/node-bigfig.svg)](https://travis-ci.org/yahoo/node-bigfig)
+
 bigfig
 ======
 configuration objects that vary based on multiple considerations
